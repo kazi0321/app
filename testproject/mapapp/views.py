@@ -21,15 +21,15 @@ import urllib
 from concurrent.futures import ThreadPoolExecutor,wait,as_completed
 import concurrent.futures as confu
 
-ghotel = "helloworld"
+ghotel = 0
 gcount = 0
 gimage = 0
 JTB_url = ""
 RAKUTEN_url = ""
 JALAN_url= ""
-jtb_price=[""]*10
+jtb_price=[""]*6
 rakuten_price=""
-jalan_price=[""]*10
+jalan_price=[""]*6
 ENCODING = 'utf-8'
 @csrf_protect
 def form_test(request):
@@ -76,9 +76,9 @@ def submain(request):
                 prakuten[i][0] = str(prakuten[i][0]) + "円"
                 prakuten[i][1] = str(prakuten[i][1]) + "円"	
 
-	print(pjalan)
+	#print(pjalan)
 	print(pjtb)
-	print(prakuten)
+	#print(prakuten)
 	if x == 3:
 		return render(request, 'mapapp/index5.html', {
 			'a1': [hotel[1],hotel[2],hotel[3]],
@@ -109,10 +109,10 @@ def test(request):
 	x = 0
 	lat = 35.689488
 	lng = 139.691706
-	hotel = [" "] * 10
-	hurl = [" "] * 10
-	image = [" "] * 10
-	price = [1]*10
+	hotel = [" "] * 7
+	hurl = [" "] * 7
+	image = [" "] * 7
+	price = [1]*7
 	purl = [" "]*10
 	lat2 = [1] * 10
 	lng2 = [1] * 10
@@ -146,16 +146,20 @@ def test(request):
 				hlocation = result(html, 3)
 				htype = result(html,5)
 				if x == 3:
-					purl = parallel(hurl,3,scraping)
-					price2 = parallel(hotel,3,js_jtb)
-					price3 = parallel(hotel,3,rakuten)
+					#purl = parallel(hurl,3,scraping)
+					#price2 = parallel(hotel,3,js_jtb)
+					#price3 = parallel(hotel,3,rakuten)
+					pric = [hurl,hotel,hotel]
+					kansuu = [scraping,js_jtb,rakuten]
+					process = parapara(kansuu,x,parallel,pric)
+					purl,price2,price3 = process[0],process[1],process[2]
 					JTB_url = price2
 					RAKUTEN_url = price3
 					JALAN_url = purl
 					#jtb_price = parallel(price2,3,jtbscraping)
 					#jalan_price = parallel(purl,3,jalanscraping)
 					#rakuten_price = parallel(price3,3,rscraping)
-					pric = [price2,purl,price3]
+					pric = [price2,hotel,price3]
 					kansuu = [jtbscraping,jalanscraping,rscraping]
 					process = parapara(kansuu,x,parallel,pric)
 					jtb_price = process[0]
@@ -163,14 +167,18 @@ def test(request):
 					rakuten_price = process[2]
 				elif x>=5:
 					x = 5
-					purl = parallel(hurl,5,scraping)
-					price2 = parallel(hotel,5,js_jtb)
-					price3 = parallel(hotel,5,rakuten)
+					#purl = parallel(hurl,5,scraping)
+					#price2 = parallel(hotel,5,js_jtb)
+					#price3 = parallel(hotel,5,rakuten)
+					pric = [hurl,hotel,hotel]
+					kansuu = [scraping,js_jtb,rakuten]
+					process = parapara(kansuu,x,parallel,pric)
+					purl,price2,price3 = process[0],process[1],process[2]
 					JTB_url = price2
 					RAKUTEN_url = price3
 					JALAN_url = purl
-					print(JALAN_url)
-					pric = [price2,purl,price3]
+					#print(JALAN_url)
+					pric = [price2,hotel,price3]
 					kansuu = [jtbscraping,jalanscraping,rscraping]
 					process = parapara(kansuu,x,parallel,pric)
 					jtb_price = process[0]
@@ -365,8 +373,8 @@ def scraping(hurl):
 def parallel(hotel,x,js):
 	start = time.time()
 	pool = ThreadPoolExecutor(x)
-	url=[""]*7
-	h=[""]*7
+	url=[""]*9
+	h=[""]*9
 	for i,hotelname in enumerate(hotel):
 		if i == 0:
 			continue
@@ -380,6 +388,7 @@ def parallel(hotel,x,js):
 	return url	
 
 def parapara(kansuu,x,parallel,hotel):
+	start = time.time()
 	c = [""]*10
 	d = [""]*10
 	pool = ThreadPoolExecutor(3)
@@ -387,7 +396,9 @@ def parapara(kansuu,x,parallel,hotel):
 		c[i] = pool.submit(parallel,hotel[i],x,k)
 	for i in range(3):
 		d[i] = c[i].result()
-	print(d)
+	end = time.time()
+	print("\n" +"parapara "+ str(end-start) + "sec")
+	#print(d)
 	return d
 
 def js_jtb(hotel):
@@ -448,13 +459,15 @@ def rakuten(hotel):
 	print("\n" +"rakuten "+ str(end-start) + "sec")
 	return url
 
-def jtbscraping(hurl):
+def jtbscraping(url):
 	start = time.time()
 	jtb_price = 0
 	start = time.time()
-	if hurl !=1:
+	if url.find("html") == -1:
+		url = url+"meal.html"
+	if url !=1:
 		driver = webdriver.PhantomJS()
-		driver.get(hurl)
+		driver.get(url)
 		soup = BeautifulSoup(driver.page_source,"lxml")
 		for div in soup.select('div#one-price-area > dl > dd > span'):
 			jtb_price = div.text
@@ -467,23 +480,26 @@ def jtbscraping(hurl):
 
 def jalanscraping(hurl):
 	start = time.time()
+#	urllib.parse.quote_plus(hotel, encoding='utf-8')
+	url = "https://www.jalan.net/uw/uwp2011/uww2011init.do?keyword=" +  urllib.parse.quote_plus(hurl,encoding='shift_jis')
 	jaran_price = [0,1000000000000]
-	r = requests.get('%s'%hurl)
+	r = requests.get('%s'%url)
 	soup = BeautifulSoup(r.content,"html.parser")
-	for div in soup.select('td.s12_66'):
-		te= div.text.strip()
-		te = te.replace("￥","")
-		te = list(te)
-		te.pop()
-		te = ''.join(te)
-		try:	
-			te = int(te.replace(",",""))
-			if te > jaran_price[0] :
-				jaran_price[0] = te
-			if te < jaran_price[1] :
-				jaran_price[1] = te
-		except:
-			pass
+	div = soup.select('div#fw > div.result > div.detail.clearfix > div.detail-r > div.price.clearfix > span.bold')
+	#	te= div.text.strip()
+	#	te = te.replace("￥","")
+	#	te = list(te)
+	#	te.pop()
+	#	te = ''.join(te)
+	#	try:	
+	#		te = int(te.replace(",",""))
+	#		if te > jaran_price[0] :
+	#			jaran_price[0] = te
+	#		if te < jaran_price[1] :
+	#			jaran_price[1] = te
+	#	except:
+	#		pass
+	jaran_price[0] = div[0].text
 	end = time.time()
 	print("\n" +"jaranscraping"+ str(end-start) + "sec")
 	return jaran_price
