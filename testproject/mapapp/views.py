@@ -159,7 +159,7 @@ def test(request):
 					#jtb_price = parallel(price2,3,jtbscraping)
 					#jalan_price = parallel(purl,3,jalanscraping)
 					#rakuten_price = parallel(price3,3,rscraping)
-					pric = [price2,hotel,price3]
+					pric = [price2,hotel,hotel]
 					kansuu = [jtbscraping,jalanscraping,rscraping]
 					process = parapara(kansuu,x,parallel,pric)
 					jtb_price = process[0]
@@ -178,7 +178,8 @@ def test(request):
 					RAKUTEN_url = price3
 					JALAN_url = purl
 					#print(JALAN_url)
-					pric = [price2,hotel,price3]
+					jtbinfo = [price2,hotel]
+					pric = [jtbinfo,hotel,hotel]
 					kansuu = [jtbscraping,jalanscraping,rscraping]
 					process = parapara(kansuu,x,parallel,pric)
 					jtb_price = process[0]
@@ -459,23 +460,39 @@ def rakuten(hotel):
 	print("\n" +"rakuten "+ str(end-start) + "sec")
 	return url
 
-def jtbscraping(url):
+def jtbscraping(url,hotel):
 	start = time.time()
 	jtb_price = 0
-	start = time.time()
-	if url.find("html") == -1:
-		url = url+"meal.html"
-	if url !=1:
-		driver = webdriver.PhantomJS()
-		driver.get(url)
-		soup = BeautifulSoup(driver.page_source,"lxml")
-		for div in soup.select('div#one-price-area > dl > dd > span'):
-			jtb_price = div.text
-		driver.quit()
-	else:
-		jtb_price = "存在しない"
-	end = time.time()
-	print("\n" +"jtbscraping"+ str(end-start) + "sec")
+	url = list(url)
+	url.pop()
+	for a in range(len(url)):
+		b = url.pop()
+		if b == "/":
+			if url.count("/") == 8:
+				break
+				
+	url = ''.join(url)
+	r = requests.get('%s'%url)
+	soup = BeautifulSoup(r.content,"html.parser")
+	for a in soup.select("#shisetsu_list > div > div.htl_title > div > h2 > a > span"):
+		if hotel == a.text:
+			print(a.text)
+	#a = soup.select("div#shisetsu_list > div > div.htl_listInner > div.htl_body > div > dl.htl_price1 > dd > span")
+	#start = time.time()
+	#if url.find("html") == -1:
+	#	url = url+"meal.html"
+	#if url !=1:
+	#	driver = webdriver.PhantomJS()
+	#	driver.get(url)
+	#	soup = BeautifulSoup(driver.page_source,"lxml")
+	#	for div in soup.select('div#one-price-area > dl > dd > span'):
+	#		jtb_price = div.text
+	#	driver.service.process.send_signal(signal.SIGTERM)
+	#	driver.quit()
+	#else:
+	#	jtb_price = "存在しない"
+	#end = time.time()
+	#print("\n" +"jtbscraping"+ str(end-start) + "sec")
 	return jtb_price
 
 def jalanscraping(hurl):
@@ -507,48 +524,50 @@ def jalanscraping(hurl):
 def rscraping(url):
 	start = time.time()
 	hello = [10000000,0]
+	url = "https://kw.travel.rakuten.co.jp/keyword/Search.do?charset=utf-8&f_max=30&lid=topC_search_keyword&f_query=" + url 
 	try:
-		url = "https:" + url
+		#url = "https:" + url
 		r = requests.get('%s'%url)
 		soup = BeautifulSoup(r.content,"html.parser")
-		for b in soup.select('li[data-locate="roomType-chargeByPerson-1"]'):
-			rprice = b.find('strong')
-			#print(rprice.text)
-			try:
-				rakuten_price2 = rprice.text.replace(",","").split("~")
-				rakuten_price2[1] = rakuten_price2[1].replace("円/人","")
-				rakuten_price2 = list(map(int,rakuten_price2))
-				if hello[0] > rakuten_price2[0]:
-					hello[0] = rakuten_price2[0]
-				if hello[1] < rakuten_price2[1]:
-					hello[1] = rakuten_price2[1]	
-			except:
-				a = rprice.text.replace("円/人","").replace(",","")
-				rakuten_price2 = [a,a]
-				rakuten_price2 = list(map(int,rakuten_price2))
-				if hello[0] > rakuten_price2[0]:
-					hello[0] = rakuten_price2[0]
-				if hello[1] < rakuten_price2[1]:
-					hello[1] = rakuten_price2[1]
-		if hello[0] == 10000000 and hello[1] == 0:
-			for b in soup.select('li[data-locate="roomType-chargeByPerson-2"]'):
-				rprice = b.find('strong')
-				try:
-					rakuten_price2 = rprice.text.replace(",","").split("~")
-					rakuten_price2[1] = rakuten_price2[1].replace("円/人","")
-					rakuten_price2 = list(map(int,rakuten_price2))
-					if hello[0] > rakuten_price2[0]:
-						hello[0] = int(rakuten_price2[0]/2)
-					if hello[1] < rakuten_price2[1]:
-						hello[1] = int(rakuten_price2[1]/2)
-				except:
-					a = rprice.text.replace("円/人","").replace(",","")
-					rakuten_price2 = [a,a]
-					rakuten_price2 = list(map(int,rakuten_price2))
-					if hello[0] > rakuten_price2[0]:
-						hello[0] = int(rakuten_price2[0]/2)
-					if hello[1] < rakuten_price2[1]:
-						hello[1] = int(rakuten_price2[1]/2)
+		b = soup.select('div#result > div.hotelBox > dl.price > dd > em')
+		hello[0] = b[0].text
+	#		rprice = b.find('strong')
+	#		#print(rprice.text)
+	#		try:
+	#			rakuten_price2 = rprice.text.replace(",","").split("~")
+	#			rakuten_price2[1] = rakuten_price2[1].replace("円/人","")
+	#			rakuten_price2 = list(map(int,rakuten_price2))
+	#			if hello[0] > rakuten_price2[0]:
+	#				hello[0] = rakuten_price2[0]
+	#			if hello[1] < rakuten_price2[1]:
+	#				hello[1] = rakuten_price2[1]	
+	#		except:
+	#			a = rprice.text.replace("円/人","").replace(",","")
+	#			rakuten_price2 = [a,a]
+	#			rakuten_price2 = list(map(int,rakuten_price2))
+	#			if hello[0] > rakuten_price2[0]:
+	#				hello[0] = rakuten_price2[0]
+	#			if hello[1] < rakuten_price2[1]:
+	#				hello[1] = rakuten_price2[1]
+	#	if hello[0] == 10000000 and hello[1] == 0:
+	#		for b in soup.select('li[data-locate="roomType-chargeByPerson-2"]'):
+	#			rprice = b.find('strong')
+	#			try:
+	#				rakuten_price2 = rprice.text.replace(",","").split("~")
+	#				rakuten_price2[1] = rakuten_price2[1].replace("円/人","")
+	#				rakuten_price2 = list(map(int,rakuten_price2))
+	#				if hello[0] > rakuten_price2[0]:
+	#					hello[0] = int(rakuten_price2[0]/2)
+	#				if hello[1] < rakuten_price2[1]:
+	#					hello[1] = int(rakuten_price2[1]/2)
+	#			except:
+	#				a = rprice.text.replace("円/人","").replace(",","")
+	#				rakuten_price2 = [a,a]
+	#				rakuten_price2 = list(map(int,rakuten_price2))
+	#				if hello[0] > rakuten_price2[0]:
+	#					hello[0] = int(rakuten_price2[0]/2)
+	#				if hello[1] < rakuten_price2[1]:
+	#					hello[1] = int(rakuten_price2[1]/2)
 	except:
 		pass
 	end = time.time()
