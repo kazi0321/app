@@ -178,8 +178,11 @@ def test(request):
 					RAKUTEN_url = price3
 					JALAN_url = purl
 					#print(JALAN_url)
-					jtbinfo = [price2,hotel]
-					pric = [jtbinfo,hotel,hotel]
+					#jtbinfo = [""]*6
+					#for a in range(6):
+					#	jtbinfo[a] = [hotel[a],price2[a]]
+					#print(jtbinfo) 
+					pric = [price2,hotel,hotel]
 					kansuu = [jtbscraping,jalanscraping,rscraping]
 					process = parapara(kansuu,x,parallel,pric)
 					jtb_price = process[0]
@@ -460,22 +463,27 @@ def rakuten(hotel):
 	print("\n" +"rakuten "+ str(end-start) + "sec")
 	return url
 
-def jtbscraping(url,hotel):
+def jtbscraping(jtbinfo):
 	start = time.time()
+	r = requests.get('%s'%jtbinfo)
+	soup = BeautifulSoup(r.content,"html.parser")
+	name = soup.select("div#htl_titleTop > h1")
+	name = name[0].text
+	regex=r'（.*）'
+	name = re.sub(regex,"",name)
 	jtb_price = 0
-	url = list(url)
-	url.pop()
-	for a in range(len(url)):
-		b = url.pop()
+	jtbinfo = list(jtbinfo)
+	jtbinfo.pop()
+	for a in range(len(jtbinfo)):
+		b = jtbinfo.pop()
 		if b == "/":
-			if url.count("/") == 8:
-				break
-				
-	url = ''.join(url)
-	r = requests.get('%s'%url)
+			if jtbinfo.count("/") == 8:
+				break				
+	jtbinfo = ''.join(jtbinfo)
+	r = requests.get('%s'%jtbinfo)
 	soup = BeautifulSoup(r.content,"html.parser")
 	for a in soup.select("#shisetsu_list > div > div.htl_title > div > h2 > a > span"):
-		if hotel == a.text:
+		if name == a.text:
 			print(a.text)
 	#a = soup.select("div#shisetsu_list > div > div.htl_listInner > div.htl_body > div > dl.htl_price1 > dd > span")
 	#start = time.time()
@@ -491,8 +499,8 @@ def jtbscraping(url,hotel):
 	#	driver.quit()
 	#else:
 	#	jtb_price = "存在しない"
-	#end = time.time()
-	#print("\n" +"jtbscraping"+ str(end-start) + "sec")
+	end = time.time()
+	print("\n" +"jtbscraping"+ str(end-start) + "sec")
 	return jtb_price
 
 def jalanscraping(hurl):
